@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transparent-chess-selflearn"
+version = "0.1.0"
+description = "Batched neural MCTS, self-play replay, candidate training, and arena promotion for a compact chess agent"
+requires-python = ">=3.11"
+dependencies = [
+  "torch>=2.4",
+  "numpy>=1.26",
+  "h5py>=3.11",
+  "PyYAML>=6.0",
+  "tqdm>=4.66",
+  "tensorboard>=2.17",
+  "bulletchess",
+]
+
+[project.scripts]
+chess-selflearn = "chess_selflearn.iterate:main"
+chess-selfplay = "chess_selflearn.self_play:main"
+chess-train-candidate = "chess_selflearn.train_candidate:main"
+chess-arena = "chess_selflearn.arena:main"
+
+[tool.setuptools.packages.find]
+include = ["chess_selflearn*"]
