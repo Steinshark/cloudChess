@@ -94,7 +94,7 @@ class ChessPolicyValueNet(nn.Module):
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
         x = self.tower(self.stem(x))
-        policy = self.policy_head(x).flatten(1)
+        policy = self.policy_head(x).permute(0, 2, 3, 1).flatten(start_dim=1)
         value = self.value_head(self.value_conv(x)).squeeze(1)
         return policy, value
 

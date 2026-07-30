@@ -14,14 +14,14 @@ data:
 model:
   input_planes: 34
   channels: 128
-  residual_blocks: 8
+  residual_blocks: 12
   policy_planes: 73
   value_hidden: 256
   normalization: batchnorm
   activation: relu
 
 training:
-  output_dir: "D:/data/chess/bootstrap_runs/resnet8x128"
+  output_dir: "D:/data/chess/bootstrap_runs/resnet12x128"
   batch_size: 64
   gradient_accumulation_steps: 1
   max_steps: 100000
