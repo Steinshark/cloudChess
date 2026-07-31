@@ -1,0 +1,37 @@
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: false
+
+models:
+  # Parent directories are fine; every readable .pt below them is listed.
+  roots:
+    - "S:/data/chess/bootstrap_runs"
+    - "S:/data/chess/self_learning_12x128"
+  patterns:
+    - "**/*.pt"
+  exclude_name_contains:
+    - ".tmp"
+  device: "auto"
+  precision: "fp16"
+  channels_last: true
+  max_loaded_models: 2
+  refresh_seconds: 30
+
+games:
+  default_simulations: 128
+  min_simulations: 1
+  max_simulations: 800
+  # One is safest for a single consumer GPU. Requests queue rather than overlap.
+  max_concurrent_ai: 1
+  max_games: 128
+  game_ttl_minutes: 360
+  c_puct_init: 1.25
+  c_puct_base: 19652.0
+
+stats:
+  bootstrap_roots:
+    - "S:/data/chess/bootstrap_runs"
+  self_learning_roots:
+    - "S:/data/chess/self_learning_12x128"
+  max_points_per_series: 1200

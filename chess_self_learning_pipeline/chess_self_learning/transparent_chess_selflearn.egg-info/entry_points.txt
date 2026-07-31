@@ -1,5 +1,0 @@
-[console_scripts]
-chess-arena = chess_selflearn.arena:main
-chess-selflearn = chess_selflearn.iterate:main
-chess-selfplay = chess_selflearn.self_play:main
-chess-train-candidate = chess_selflearn.train_candidate:main

@@ -1,0 +1,50 @@
+seed: 20260730
+
+run:
+  root: "S:/data/chess/self_learning_12x128"
+  initial_checkpoint: "S:/data/chess/bootstrap_runs/resnet12x128/best.pt"
+
+self_play:
+  games_per_iteration: 256
+  concurrent_games: 32
+  simulations: 256
+  max_game_plies: 300
+  temperature_moves: 20
+  temperature: 1.0
+  c_puct_init: 1.25
+  c_puct_base: 19652.0
+  dirichlet_alpha: 0.30
+  dirichlet_epsilon: 0.25
+  inference_batch_size: 64
+  precision: fp16
+  channels_last: true
+  max_policy_moves: 256
+
+training:
+  steps_per_iteration: 5000
+  batch_size: 512
+  num_workers: 2
+  read_chunk_size: 4096
+  replay_keep_iterations: 8
+  bootstrap_dataset_root: "S:/data/chess/lichess_db"
+  bootstrap_mix_ratio: 0.25
+  learning_rate: 0.0002
+  minimum_learning_rate: 0.00001
+  warmup_steps: 250
+  weight_decay: 0.0001
+  value_loss_weight: 1.0
+  gradient_clip_norm: 1.0
+  precision: fp16
+  channels_last: true
+  checkpoint_every_steps: 1000
+
+arena:
+  # Forty games is suitable only for plumbing tests. Use a larger arena for
+  # actual promotion decisions.
+  games: 40
+  concurrent_games: 20
+  simulations: 400
+  max_game_plies: 300
+  promotion_score: 0.55
+  precision: fp16
+  channels_last: true

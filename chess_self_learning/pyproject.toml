@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transparent-chess-selflearn"
+version = "0.2.0"
+description = "Neural MCTS self-learning plus a locally hosted LAN chess and training dashboard"
+requires-python = ">=3.11"
+dependencies = [
+  "torch>=2.4",
+  "numpy>=1.26",
+  "h5py>=3.11",
+  "PyYAML>=6.0",
+  "tqdm>=4.66",
+  "tensorboard>=2.17",
+  "bulletchess",
+  "python-chess>=1.999",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+]
+
+[project.scripts]
+chess-selflearn = "chess_selflearn.iterate:main"
+chess-selfplay = "chess_selflearn.self_play:main"
+chess-train-candidate = "chess_selflearn.train_candidate:main"
+chess-arena = "chess_selflearn.arena:main"
+chess-lan-web = "chess_web.app:main"
+
+[tool.setuptools.packages.find]
+include = ["chess_selflearn*", "chess_web*"]
+
+[tool.setuptools.package-data]
+chess_web = ["static/*"]

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chess Training Statistics</title><link rel="stylesheet" href="/static/app.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="/"><span class="brand-mark">♞</span><span>Neural Chess LAN</span></a><nav class="nav"><a href="/">Play</a><a class="active" href="/stats">Training</a></nav></header>
+<main class="page">
+  <div id="error" class="error-banner"></div>
+  <section class="panel stats-toolbar">
+    <div class="control"><label class="label" for="run-kind">Training stage</label><select id="run-kind"><option value="self-learning">Self-learning</option><option value="bootstrap">Bootstrap</option></select></div>
+    <div class="control"><label class="label" for="run">Run</label><select id="run"></select></div>
+    <div class="control" id="iteration-control"><label class="label" for="iteration">Candidate iteration</label><select id="iteration"></select></div>
+    <button id="refresh" class="secondary">Refresh statistics</button>
+  </section>
+  <section id="kpis" class="kpi-grid"></section>
+  <section id="charts" class="chart-grid"></section>
+  <section id="table-card" class="panel chart-card" style="margin-top:18px"><div class="chart-title">Iteration history</div><div id="table"></div></section>
+</main>
+<script src="/static/stats.js"></script>
+</body></html>

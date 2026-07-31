@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: transparent-chess-selflearn
+Version: 0.2.0
+Summary: Neural MCTS self-learning plus a locally hosted LAN chess and training dashboard
+Requires-Python: >=3.11
+Requires-Dist: torch>=2.4
+Requires-Dist: numpy>=1.26
+Requires-Dist: h5py>=3.11
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: tqdm>=4.66
+Requires-Dist: tensorboard>=2.17
+Requires-Dist: bulletchess
+Requires-Dist: python-chess>=1.999
+Requires-Dist: fastapi>=0.115
+Requires-Dist: uvicorn[standard]>=0.30
