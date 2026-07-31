@@ -190,6 +190,8 @@ class StatsService:
             selfplay = entry.get("selfplay", {}) or {}
             arena = entry.get("arena", {}) or {}
             candidate = entry.get("candidate", {}) or {}
+            search = selfplay.get("search", {}) or {}
+            evaluator = selfplay.get("evaluator", {}) or {}
             metrics_path = (
                 run.path
                 / "iterations"
@@ -222,6 +224,10 @@ class StatsService:
                     "positions_per_game": positions / games if games else 0.0,
                     "positions_per_second": float(selfplay.get("positions_per_second", 0.0) or 0.0),
                     "elapsed_seconds": float(selfplay.get("elapsed_seconds", 0.0) or 0.0),
+                    "simulations_per_second": float(search.get("simulations_per_second", 0.0) or 0.0),
+                    "mean_evaluation_batch": float(search.get("mean_evaluation_batch", 0.0) or 0.0),
+                    "mean_unique_batch": float(evaluator.get("mean_unique_batch", 0.0) or 0.0),
+                    "duplicate_fraction": float(evaluator.get("duplicate_fraction", 0.0) or 0.0),
                     "results": selfplay.get("results", {}),
                     "terminations": selfplay.get("terminations", {}),
                     "candidate_generation": candidate.get("candidate_generation"),

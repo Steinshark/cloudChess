@@ -37,14 +37,7 @@ function renderBoard(){
     if(state.selected===sq)el.classList.add('selected');
     if(last && (last.slice(0,2)===sq || last.slice(2,4)===sq))el.classList.add('last');
     if(targets.includes(sq))el.classList.add(pieces[sq]?'capture':'legal');
-    if (pieces[sq]) {
-      const p = document.createElement('span');
-      const pieceCode = pieces[sq];
-      const isWhitePiece = pieceCode === pieceCode.toUpperCase();
-      p.className = `piece ${isWhitePiece ? 'white-piece' : 'black-piece'}`;
-      p.textContent = PIECES[pieceCode];
-      el.appendChild(p);
-    }
+    if(pieces[sq]){const p=document.createElement('span');const pieceCode=pieces[sq];const isWhitePiece=pieceCode===pieceCode.toUpperCase();p.className=`piece ${isWhitePiece?'white-piece':'black-piece'}`;p.textContent=PIECES[pieceCode];el.appendChild(p)}
     const col=index%8,row=Math.floor(index/8);
     if(col===0){const c=document.createElement('span');c.className='coord rank';c.textContent=sq[1];el.appendChild(c)}
     if(row===7){const c=document.createElement('span');c.className='coord file';c.textContent=sq[0];el.appendChild(c)}

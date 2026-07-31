@@ -25,7 +25,7 @@ def main() -> None:
     actions, moves = legal_action_map(board)
     assert state.shape == (34, 8, 8)
     assert len(actions) == 20
-    assert len(set(actions)) == 20
+    assert len(set(int(action) for action in actions)) == 20
 
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for the full smoke test")
@@ -39,16 +39,19 @@ def main() -> None:
     tree = SearchTree(
         board,
         repetitions,
-        SearchConfig(simulations=8),
+        SearchConfig(simulations=8, leaves_per_tree=4, virtual_loss=1.0),
         np.random.default_rng(1),
     )
-    run_batched_search([tree], evaluator, simulations=8)
+    metrics = run_batched_search([tree], evaluator, simulations=8)
+    assert tree.root.virtual_visits == 0
     _, move = tree.select_move(0, 0, 0.0)
     assert move in board.legal_moves()
     print(f"State shape: {state.shape}")
     print(f"Legal actions: {len(actions)}")
     print(f"MCTS root visits: {tree.root.visit_count}")
     print(f"Selected legal move: {move.uci()}")
+    print(f"Search metrics: {metrics.as_dict()}")
+    print(f"Evaluator metrics: {evaluator.metrics.as_dict()}")
 
 
 if __name__ == "__main__":

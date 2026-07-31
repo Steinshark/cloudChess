@@ -9,8 +9,7 @@ This package continues from the supervised bootstrap checkpoint and implements:
 5. paired-color arena evaluation;
 6. automatic promotion or rejection of each candidate.
 
-The model architecture and checkpoint keys match the earlier 8-block,
-128-channel bootstrap package.
+The default model is the current 12-block, 128-channel network. Checkpoint metadata remains the source of truth when loading a model.
 
 ## Install
 
@@ -32,8 +31,8 @@ Edit `selflearn_config.yaml`:
 
 ```yaml
 run:
-  root: "S:/data/chess/self_learning"
-  initial_checkpoint: "S:/data/chess/bootstrap_runs/resnet8x128/best.pt"
+  root: "S:/data/chess/self_learning_12x128"
+  initial_checkpoint: "S:/data/chess/bootstrap_runs/resnet12x128/best.pt"
 ```
 
 The initial checkpoint can be the best bootstrap checkpoint or any later
@@ -45,11 +44,20 @@ Run this before generating hundreds of games:
 
 ```powershell
 python -m chess_selflearn.smoke_test `
-  --checkpoint "S:/data/chess/bootstrap_runs/resnet8x128/best.pt"
+  --checkpoint "S:/data/chess/bootstrap_runs/resnet12x128/best.pt"
 ```
 
 It verifies the 34-plane state encoding, unique legal action indexes, checkpoint
 compatibility, neural inference, and an eight-simulation MCTS search.
+
+Also run the CPU-only optimized-search structural test:
+
+```powershell
+python -m chess_selflearn.optimization_smoke_test
+```
+
+It checks apply/undo board restoration, in-place previous-position encoding,
+multiple leaves per tree, virtual-reservation cleanup, and exact visit totals.
 
 ## Low-cost first iteration
 
@@ -60,6 +68,8 @@ self_play:
   games_per_iteration: 8
   concurrent_games: 8
   simulations: 32
+  inference_batch_size: 32
+  leaves_per_tree: 2
 
 training:
   steps_per_iteration: 100
@@ -115,7 +125,7 @@ Generate replay:
 python -m chess_selflearn.self_play `
   --config selflearn_config.yaml `
   --iteration 1 `
-  --checkpoint "S:/data/chess/self_learning/champion.pt"
+  --checkpoint "S:/data/chess/self_learning_12x128/champion.pt"
 ```
 
 Train a candidate:
@@ -124,7 +134,7 @@ Train a candidate:
 python -m chess_selflearn.train_candidate `
   --config selflearn_config.yaml `
   --iteration 1 `
-  --champion "S:/data/chess/self_learning/champion.pt"
+  --champion "S:/data/chess/self_learning_12x128/champion.pt"
 ```
 
 Evaluate it:
@@ -133,14 +143,14 @@ Evaluate it:
 python -m chess_selflearn.arena `
   --config selflearn_config.yaml `
   --iteration 1 `
-  --champion "S:/data/chess/self_learning/champion.pt" `
-  --candidate "S:/data/chess/self_learning/iterations/iteration_000001/candidate.pt"
+  --champion "S:/data/chess/self_learning_12x128/champion.pt" `
+  --candidate "S:/data/chess/self_learning_12x128/iterations/iteration_000001/candidate.pt"
 ```
 
 ## Output layout
 
 ```text
-S:/data/chess/self_learning/
+S:/data/chess/self_learning_12x128/
 ├── champion.pt
 ├── run_state.json
 ├── history.json
@@ -180,7 +190,7 @@ Inspect accumulated replay files with:
 
 ```powershell
 python -m chess_selflearn.inspect_replay `
-  --run-root "S:/data/chess/self_learning"
+  --run-root "S:/data/chess/self_learning_12x128"
 ```
 
 ## Search behavior
@@ -189,20 +199,45 @@ Self-play defaults:
 
 ```yaml
 simulations: 256
-concurrent_games: 32
+concurrent_games: 96
+inference_batch_size: 128
+leaves_per_tree: 4
+virtual_loss: 1.0
 dirichlet_alpha: 0.30
 dirichlet_epsilon: 0.25
 temperature_moves: 20
 temperature: 1.0
 ```
 
-One leaf is selected from each active game per search round. Those leaf states
-are evaluated together on the GPU. Exact duplicate tensors are evaluated only
-once per batch. After a move, the selected child becomes the next root, so its
-searched subtree is retained.
+Each tree can reserve several leaves per inference round using virtual visits
+and virtual loss. The scheduler fills batches across 64-128 active games, while
+each tree traverses one reusable `bulletchess.Board` with apply/undo rather than
+copying a board and move history for every simulation. Exact duplicate
+state/action pairs are evaluated once. Legal policy indexes are gathered on the
+GPU, so dense 4,672-logit policy tensors are never copied back to the CPU.
+After a move, the selected child becomes the next root and its subtree is
+retained.
 
 Arena search uses no root noise and deterministic maximum-visit selection.
 Every opening is played twice with candidate colors reversed.
+
+
+## Optimized MCTS hot path
+
+Version 0.3 replaces the original latency-bound search path with:
+
+- a rolling active-game pool that replenishes completed games immediately;
+- 96 concurrent games by default, intended to be benchmarked at 64/96/128;
+- one reusable mutable board per tree with apply/undo traversal;
+- in-place previous-position encoding with undo/apply, with no history copy;
+- vectorized conversion of 12 or 24 bitboards into tensor planes;
+- cached PUCT parent exploration constants;
+- several virtually reserved leaves per tree and inference batch;
+- GPU-side legal-action gather before device-to-host transfer;
+- self-play JSON metrics for simulations/sec, batch sizes, duplicates, and
+  selection/evaluation/backup time.
+
+The replay and checkpoint formats are unchanged.
 
 ## Candidate training
 
@@ -250,17 +285,32 @@ speed.
 
 Start with the supplied values. Change one item at a time.
 
-If self-play GPU utilization is low:
+The supplied starting point is:
 
 ```yaml
 self_play:
-  concurrent_games: 48
-  inference_batch_size: 96
+  concurrent_games: 96
+  inference_batch_size: 128
+  leaves_per_tree: 4
+  virtual_loss: 1.0
 ```
 
-If self-play runs out of memory, reduce concurrent games first. Model inference
-is small; most memory pressure generally comes from the batch and two arena
-models residing on the GPU.
+Measure 64, 96, and 128 active games on the actual RTX 4060 Ti rather than
+choosing from utilization alone:
+
+```powershell
+python -m chess_selflearn.benchmark_search `
+  --config selflearn_config.yaml `
+  --checkpoint "S:/data/chess/bootstrap_runs/resnet12x128/best.pt" `
+  --concurrency 64 96 128 `
+  --simulations 64 `
+  --plies 6 `
+  --output "S:/data/chess/search_benchmark.json"
+```
+
+Select the setting with the highest sustained `simulations_per_second`, while
+also checking mean requested/unique inference batch sizes. If self-play runs
+out of memory, reduce `inference_batch_size` first, then concurrent games.
 
 If candidate training runs out of memory:
 
@@ -286,8 +336,8 @@ training:
 - No transposition table yet.
 - No opening book is used for self-play; Dirichlet noise produces diversity.
 - Arena uses a small fixed set of paired opening prefixes.
-- Trees are batched across games rather than distributed across multiple Python
-  processes.
+- Multiple leaves are batched across trees in one Python process rather than
+  distributed across actor processes.
 - Arena trees are rebuilt every move because candidate and champion are
   different evaluators; reusing a subtree evaluated by the other model would
   contaminate the comparison.

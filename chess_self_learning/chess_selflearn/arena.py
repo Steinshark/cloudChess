@@ -15,7 +15,7 @@ from .checkpoint import load_model
 from .config import AppConfig, load_config
 from .encoding import initial_repetition_counts
 from .evaluator import EvaluatorConfig, NeuralEvaluator
-from .mcts import SearchConfig, SearchTree, run_batched_search
+from .mcts import SearchConfig, SearchMetrics, SearchTree, run_batched_search
 from .openings import DEFAULT_OPENINGS
 
 
@@ -124,7 +124,7 @@ def evaluate_candidate(
     evaluator_config = EvaluatorConfig(
         precision=config.arena.precision,
         channels_last=config.arena.channels_last,
-        max_batch_size=config.arena.concurrent_games,
+        max_batch_size=config.arena.inference_batch_size,
     )
     champion_evaluator = NeuralEvaluator(champion_model, device, evaluator_config)
     candidate_evaluator = NeuralEvaluator(candidate_model, device, evaluator_config)
@@ -135,11 +135,15 @@ def evaluate_candidate(
         c_puct_base=config.self_play.c_puct_base,
         dirichlet_alpha=config.self_play.dirichlet_alpha,
         dirichlet_epsilon=0.0,
+        leaves_per_tree=config.arena.leaves_per_tree,
+        virtual_loss=config.arena.virtual_loss,
     )
     rng = np.random.default_rng(config.seed + iteration * 200_003)
     all_games = make_arena_games(config)
     finished_games: list[ArenaGame] = []
     progress = tqdm(total=len(all_games), desc="Arena games", dynamic_ncols=True)
+    candidate_search_metrics = SearchMetrics()
+    champion_search_metrics = SearchMetrics()
 
     for batch_start in range(0, len(all_games), config.arena.concurrent_games):
         active = all_games[
@@ -160,15 +164,19 @@ def evaluate_candidate(
             candidate_games = [game for game in active if game.candidate_to_move]
             champion_games = [game for game in active if not game.candidate_to_move]
 
-            run_batched_search(
-                [game.tree for game in candidate_games if game.tree is not None],
-                candidate_evaluator,
-                simulations=config.arena.simulations,
+            candidate_search_metrics.merge(
+                run_batched_search(
+                    [game.tree for game in candidate_games if game.tree is not None],
+                    candidate_evaluator,
+                    simulations=config.arena.simulations,
+                )
             )
-            run_batched_search(
-                [game.tree for game in champion_games if game.tree is not None],
-                champion_evaluator,
-                simulations=config.arena.simulations,
+            champion_search_metrics.merge(
+                run_batched_search(
+                    [game.tree for game in champion_games if game.tree is not None],
+                    champion_evaluator,
+                    simulations=config.arena.simulations,
+                )
             )
 
             for game in active:
@@ -226,6 +234,10 @@ def evaluate_candidate(
         "score": score,
         "promotion_threshold": config.arena.promotion_score,
         "promoted": promoted,
+        "candidate_search": candidate_search_metrics.as_dict(),
+        "champion_search": champion_search_metrics.as_dict(),
+        "candidate_evaluator": candidate_evaluator.metrics.as_dict(),
+        "champion_evaluator": champion_evaluator.metrics.as_dict(),
     }
     (iteration_root / "arena_summary.json").write_text(
         json.dumps(summary, indent=2),

@@ -16,7 +16,7 @@ class RunConfig:
 @dataclass(slots=True)
 class SelfPlayConfig:
     games_per_iteration: int = 256
-    concurrent_games: int = 32
+    concurrent_games: int = 96
     simulations: int = 256
     max_game_plies: int = 300
     temperature_moves: int = 20
@@ -25,7 +25,9 @@ class SelfPlayConfig:
     c_puct_base: float = 19652.0
     dirichlet_alpha: float = 0.30
     dirichlet_epsilon: float = 0.25
-    inference_batch_size: int = 64
+    inference_batch_size: int = 128
+    leaves_per_tree: int = 4
+    virtual_loss: float = 1.0
     precision: str = "fp16"
     channels_last: bool = True
     max_policy_moves: int = 256
@@ -56,6 +58,9 @@ class ArenaConfig:
     games: int = 40
     concurrent_games: int = 20
     simulations: int = 400
+    inference_batch_size: int = 64
+    leaves_per_tree: int = 4
+    virtual_loss: float = 1.0
     max_game_plies: int = 300
     promotion_score: float = 0.55
     precision: str = "fp16"
@@ -93,10 +98,22 @@ def validate_config(config: AppConfig) -> None:
         raise ValueError("concurrent_games must be positive")
     if config.self_play.simulations <= 0:
         raise ValueError("self-play simulations must be positive")
+    if config.self_play.inference_batch_size <= 0:
+        raise ValueError("inference_batch_size must be positive")
+    if config.self_play.leaves_per_tree <= 0:
+        raise ValueError("leaves_per_tree must be positive")
+    if config.self_play.virtual_loss < 0.0:
+        raise ValueError("virtual_loss cannot be negative")
     if config.self_play.max_policy_moves < 218:
         raise ValueError("max_policy_moves must be at least 218")
     if not 0.0 <= config.training.bootstrap_mix_ratio <= 1.0:
         raise ValueError("bootstrap_mix_ratio must be in [0, 1]")
+    if config.arena.inference_batch_size <= 0:
+        raise ValueError("arena inference_batch_size must be positive")
+    if config.arena.leaves_per_tree <= 0:
+        raise ValueError("arena leaves_per_tree must be positive")
+    if config.arena.virtual_loss < 0.0:
+        raise ValueError("arena virtual_loss cannot be negative")
     if config.arena.games <= 0 or config.arena.games % 2:
         raise ValueError("arena games must be a positive even number")
     if not 0.5 <= config.arena.promotion_score <= 1.0:

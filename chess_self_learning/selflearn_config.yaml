@@ -6,7 +6,8 @@ run:
 
 self_play:
   games_per_iteration: 256
-  concurrent_games: 32
+  # Start at 96; benchmark 64, 96, and 128 on the local machine.
+  concurrent_games: 96
   simulations: 256
   max_game_plies: 300
   temperature_moves: 20
@@ -15,7 +16,9 @@ self_play:
   c_puct_base: 19652.0
   dirichlet_alpha: 0.30
   dirichlet_epsilon: 0.25
-  inference_batch_size: 64
+  inference_batch_size: 128
+  leaves_per_tree: 4
+  virtual_loss: 1.0
   precision: fp16
   channels_last: true
   max_policy_moves: 256
@@ -44,6 +47,9 @@ arena:
   games: 40
   concurrent_games: 20
   simulations: 400
+  inference_batch_size: 64
+  leaves_per_tree: 4
+  virtual_loss: 1.0
   max_game_plies: 300
   promotion_score: 0.55
   precision: fp16

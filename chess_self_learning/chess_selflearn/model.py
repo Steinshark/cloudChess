@@ -9,7 +9,7 @@ from torch import Tensor, nn
 class ModelConfig:
     input_planes: int = 34
     channels: int = 128
-    residual_blocks: int = 8
+    residual_blocks: int = 12
     policy_planes: int = 73
     value_hidden: int = 256
     normalization: str = "batchnorm"
